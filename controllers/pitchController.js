@@ -1,7 +1,7 @@
 
 import Groq from "groq-sdk";
 import Pitch from "../models/pitch.js";
-
+import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 function buildRefinePrompt(form) {
@@ -79,4 +79,70 @@ export const publishPitch = async (req, res) => {
   );
 
   res.json(pitch);
+};
+// controllers/pitchController.js
+
+
+
+export const uploadPitchMedia = async (req, res) => {
+  try {
+    console.log("===== MEDIA UPLOAD HIT =====");
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
+    const { startupId } = req.body;
+
+    if (!startupId) {
+      console.error("❌ startupId missing");
+      return res.status(400).json({ message: "startupId missing" });
+    }
+
+    if (!req.files || (!req.files.image && !req.files.video)) {
+      console.error("❌ No files received by multer");
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const update = {};
+
+    if (req.files?.image?.[0]) {
+      console.log("⬆ Uploading IMAGE to Cloudinary...");
+      const imageResult = await uploadToCloudinary(
+        req.files.image[0].buffer,
+        {
+          folder: "pitches/images",
+          resource_type: "image"
+        }
+      );
+      console.log("✅ IMAGE UPLOADED:", imageResult.secure_url);
+      update.imageUrl = imageResult.secure_url;
+    }
+
+    if (req.files?.video?.[0]) {
+      console.log("⬆ Uploading VIDEO to Cloudinary...");
+      const videoResult = await uploadToCloudinary(
+        req.files.video[0].buffer,
+        {
+          folder: "pitches/videos",
+          resource_type: "video"
+        }
+      );
+      console.log("✅ VIDEO UPLOADED:", videoResult.secure_url);
+      update.videoUrl = videoResult.secure_url;
+    }
+
+    console.log("📝 Updating Pitch with:", update);
+
+    const pitch = await Pitch.findOneAndUpdate(
+      { startupId },
+      update,
+      { new: true, upsert: true }
+    );
+
+    console.log("✅ PITCH UPDATED");
+
+    res.json(pitch);
+  } catch (err) {
+    console.error("🔥 MEDIA UPLOAD ERROR:", err);
+    res.status(500).json({ message: "Media upload failed" });
+  }
 };

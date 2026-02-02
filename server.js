@@ -6,6 +6,8 @@
 // app.use("/api", weatherRoutes);
 
 // app.listen(5000, () => console.log("Server running on 5000"));
+import "./config/env.js";
+
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";

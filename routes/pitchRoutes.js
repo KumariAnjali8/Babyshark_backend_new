@@ -4,8 +4,9 @@ import {
   getPitch,
   savePitchDraft,
   publishPitch,
-  getExploreFeed
+  getExploreFeed,uploadPitchMedia 
 } from "../controllers/pitchController.js";
+import { upload } from "../middlewares/upload.js";
 
 const router = express.Router();
 
@@ -16,7 +17,14 @@ router.get("/explore/feed", getExploreFeed);
 router.post("/refine", refinePitch);
 router.post("/save", savePitchDraft);
 router.post("/publish", publishPitch);
-
+router.post(
+  "/media",
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "video", maxCount: 1 }
+  ]),
+  uploadPitchMedia
+);
 /* ✅ PARAM ROUTE LAST */
 router.get("/:startupId", getPitch);
 
